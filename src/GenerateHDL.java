@@ -66,7 +66,7 @@ public class GenerateHDL {
         String s;
         file = new File(f);
         s = file.getName();
-        modName = s.substring(0, s.length() - 2);
+        modName = s.substring(0, s.length() - 4);
         pageNum = p;
         currVer = ver;
 
@@ -140,7 +140,7 @@ public class GenerateHDL {
             }
             txt += doOutputDefinition(0);
 
-            txt += "// INPUTS\n";
+            txt += "-- INPUTS\n";
             tempList = (LinkedList<ObjAttribute>) globalList.get(ObjAttribute.TabInput);
             for (i = 0; i < tempList.size(); i++) {
                 att = tempList.get(i);
@@ -148,7 +148,7 @@ public class GenerateHDL {
                 txt += (ind + ni[1] + " : in std_logic_vector(" + ni[2] + ");\n");
             }
 
-            txt += "\n// GLOBAL\n";
+            txt += "\n-- GLOBAL\n";
             tempList = (LinkedList<ObjAttribute>) globalList.get(ObjAttribute.TabGlobal);
 
             for (i = 0; i < tempList.size(); i++) {
@@ -777,7 +777,7 @@ try {
 
     private String doOutputDefinition(int t)
     {
-        String s1 = "// SIGNALS ";
+        String s1 = "-- SIGNALS ";
         String s2 = "";
         String s3 = ";\n";
         String[] ni;
@@ -785,7 +785,7 @@ try {
 
         if(t == 0) // for Outputs
         {
-            s1 = "// OUTPUTS ";
+            s1 = "-- OUTPUTS ";
         }
 
         if(dff_onStateOut.size() > 0)
