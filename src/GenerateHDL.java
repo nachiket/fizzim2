@@ -146,7 +146,7 @@ public class GenerateHDL {
             for (i = 0; i < tempList.size(); i++) {
                 att = tempList.get(i);
                 ni = nameinfo(att);
-                txt += (ind + ni[1] + " : in std_logic_vector(" + ni[2] + ");\n");
+                txt += (ind + ni[1] + " : in unsigned(" + ni[4] + " downto " + ni[5] + ");\n");
             }
 
             txt += "\n-- GLOBAL\n";
@@ -179,13 +179,13 @@ public class GenerateHDL {
                     resetSync = false;
                     if(att.get(3).equals("posedge"))
                     {
-                        resetLine = "if (" + s + "='1')";
+                        resetLine = "if (" + s + "='1') then";
                     } else if(att.get(3).equals("negedge"))
                     {
-                        resetLine = "if (" + s + "='0')";
+                        resetLine = "if (" + s + "='0') then";
                     } else
                     {
-                        resetLine = "if (" + s + ")";
+                        resetLine = "if (" + s + ") then";
                         resetSync = true;
                     }
                     alwaysLine += "," + s + ")";
@@ -429,10 +429,7 @@ try {
         }
 
         if(resetVar == null || resetVar.length() == 0)
-            resetVar = width+"'d0";
-
-        //System.out.println("-"+s+"-"+msb+"-"+lsb+"-"+width+"-"+resetVar);
-        //System.out.println(log);
+            resetVar = "(others=>'0')";
 
         return new String[]{log, s, bus, width, msb, lsb, order, resetVar};
     }
@@ -714,7 +711,7 @@ try {
 
         if(!resetSync)
         {
-        txt += ind + resetLine + " then\n";
+        txt += ind + resetLine + "\n";
 
         for (i = 0; i < bufferOut.size(); i++) {
             ni = nameinfo(bufferOut.get(i));
@@ -805,7 +802,7 @@ try {
             if(t != 0) // for Signals
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += ind + (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
+            txt += ind + (ni[1] + " : out unsigned( " + ni[4] + " downto " + ni[5] + ")" + s3);
         }
         if(dff_onTransitOut.size() > 0)
             txt += s1 + "dff-onTransit\n";
@@ -814,7 +811,7 @@ try {
             if(t != 0)
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
+            txt += (ni[1] + " : out unsigned( " + ni[4] + " downto " + ni[5] + ")" + s3);
         }
         if(comb_onTransitOut.size() > 0)
             txt += s1 + "comb-onTransit\n";
@@ -823,7 +820,7 @@ try {
             if(t != 0)
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
+            txt += (ni[1] + " : out unsigned( " + ni[4] + " downto " + ni[5] + ")" + s3);
         }
         if(hold_onStateOut.size() > 0)
             txt += s1 + "hold-onState\n";
@@ -832,7 +829,7 @@ try {
             if(t != 0)
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
+            txt += (ni[1] + " : out unsigned( " + ni[4] + " downto " + ni[5] +  ")" + s3);
         }
         if(hold_onTransitOut.size() > 0)
             txt += s1 + "hold-onTransit\n";
@@ -841,7 +838,7 @@ try {
             if(t != 0)
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
+            txt += (ni[1] + " : out unsigned( " + ni[4] + " downto " + ni[5] + ")" + s3);
         }
         if(dff_onBothOut.size() > 0)
             txt += s1 + "dff-onBoth\n";
@@ -850,7 +847,7 @@ try {
             if(t != 0)
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
+            txt += (ni[1] + " : out unsigned( " + ni[4] + " downto " + ni[5] + ")" + s3);
         }
         if(hold_onBothOut.size() > 0)
             txt += s1 + "hold-onBoth\n";
