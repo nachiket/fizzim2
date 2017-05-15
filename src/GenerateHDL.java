@@ -55,6 +55,7 @@ public class GenerateHDL {
     LinkedList<ObjAttribute> bufferSig = new LinkedList<ObjAttribute>();
     String alwaysLine = "process (";
     String resetLine = "";
+    String clkLine = "";
     boolean resetSync = false;  // false for Async, true for Sync
     String resetState = "";
 
@@ -159,6 +160,15 @@ public class GenerateHDL {
                     s = (String) att.get(1);
                     txt += (ind + s + ": in std_logic;\n");
                     alwaysLine += s + " ";
+                    if(att.get(3).equals("posedge"))
+                    {
+                        clkLine = "elsif (" + s + "'EVENT and clk='1')";
+                    } else if(att.get(3).equals("negedge"))
+                    {
+                        clkLine = "elsif (" + s + "'EVENT and clk='0')";
+		    } else {
+                        clkLine = "elsif (" + s + "'EVENT and clk='1')";
+		    }
                 }
                 else if (s.equals("reset_signal"))
                 {
@@ -273,7 +283,7 @@ public class GenerateHDL {
                 txt += "run_stmc: " + alwaysLine + "\nbegin \n";
                 txt += ind + resetLine +
                         "\n" + ind2 + stateVar + " <= " + resetState +
-                        ";\n" + ind + "elsif () then \n"; 
+                        ";\n" + ind + clkLine + " then\n"; 
 
 
                 LinkedList<ObjAttribute> attribList;
@@ -739,7 +749,7 @@ try {
             txt += (ind2 + ni[1] + " <= " + ni[7] + ";\n");
         }
 
-        txt += ind + "elsif () then\n" ;
+        txt += ind + clkLine + "then \n";
         }
 
         for (i = 0; i < bufferOut.size(); i++) {
@@ -795,7 +805,7 @@ try {
             if(t != 0) // for Signals
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
+            txt += ind + (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
         }
         if(dff_onTransitOut.size() > 0)
             txt += s1 + "dff-onTransit\n";
