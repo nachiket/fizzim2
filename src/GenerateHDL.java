@@ -278,7 +278,7 @@ public class GenerateHDL {
 
                 txt += "\nsignal  " + stateVar + ": states;";
 
-		txt += "\nbegin\n";
+		txt += "\n\nbegin\n\n";
 
                 txt += "run_stmc: " + alwaysLine + "\nbegin \n";
                 txt += ind + resetLine +
@@ -287,7 +287,7 @@ public class GenerateHDL {
 
 
                 LinkedList<ObjAttribute> attribList;
-                txt += "\n" + ind2 + "case (" + stateVar + ") is\n";
+                txt += ind2 + "case (" + stateVar + ") is\n";
 
                 for(i = 1; i < objList.size(); i++)
                 {
@@ -709,7 +709,7 @@ try {
            dff_onTransitOut.size() == 0
         ) return txt;
 
-        txt += "\n" + "// Drive outputs \n";
+        txt += "\n" + "-- Drive outputs \n";
         txt += "compute: " + alwaysLine + "\nbegin\n";
 
         if(!resetSync)
