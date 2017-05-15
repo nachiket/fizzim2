@@ -42,8 +42,7 @@ public class GenerateHDL {
     boolean pageMode = true; // multi
 
     String baseStateVar = "state";
-    String baseNextStateVar = "nextstate";
-    String stateVar, nextStateVar;
+    String stateVar;
     String holdVar = "nx_";
     LinkedList<ObjAttribute> dff_onStateOut = new LinkedList<ObjAttribute>();
     LinkedList<ObjAttribute> dff_onTransitOut = new LinkedList<ObjAttribute>();
@@ -54,13 +53,13 @@ public class GenerateHDL {
     LinkedList<ObjAttribute> hold_onBothOut = new LinkedList<ObjAttribute>();
     LinkedList<ObjAttribute> bufferOut = new LinkedList<ObjAttribute>();
     LinkedList<ObjAttribute> bufferSig = new LinkedList<ObjAttribute>();
-    String alwaysLine = "always @(";
+    String alwaysLine = "process (";
     String resetLine = "";
     boolean resetSync = false;  // false for Async, true for Sync
     String resetState = "";
 
     String ind = "    ";
-    String ind2 = ind + ind, ind3 = ind2 + ind, ind4 = ind2 + ind2;
+    String ind2 = ind + ind, ind3 = ind2 + ind, ind4 = ind2 + ind2, ind5 = ind4 + ind;
 
     public GenerateHDL(String f, int p, String ver, DrawArea draw, javax.swing.JTextArea cons)
     {
@@ -89,11 +88,15 @@ public class GenerateHDL {
             DateFormat df = DateFormat.getDateInstance(DateFormat.SHORT);
             DateFormat dt = DateFormat.getTimeInstance(DateFormat.MEDIUM);
 
-            txt = "// File last modified by Fizzim2 (build ";
+            txt = "-- File last modified by Fizzim2 (build ";
             txt += currVer + ") at " + dt.format(currTime)
                     + " on " + df.format(currDate) + "\n";
 
-            txt += "\nmodule "+ modName +" (\n\n";
+	    txt += "library ieee;\n";
+	    txt += "use ieee.std_logic_1164.all;\n";
+	    txt += "use ieee.numeric_std.all;\n";
+            txt += "\nentity "+ modName +" is\n";
+	    txt += "port (\n";
 
             int stateBw;
             LinkedList<ObjAttribute> tempList;
@@ -142,7 +145,7 @@ public class GenerateHDL {
             for (i = 0; i < tempList.size(); i++) {
                 att = tempList.get(i);
                 ni = nameinfo(att);
-                txt += (ind + "input      " + ni[2] + " " + ni[1] + ",\n");
+                txt += (ind + ni[1] + " : in std_logic_vector(" + ni[2] + ");\n");
             }
 
             txt += "\n// GLOBAL\n";
@@ -154,30 +157,28 @@ public class GenerateHDL {
                 if(s.equals("clock"))
                 {
                     s = (String) att.get(1);
-                    txt += (ind + "input " + ind3 + s);
-                    alwaysLine += att.get(3) + " " + s;
+                    txt += (ind + s + ": in std_logic;\n");
+                    alwaysLine += s + " ";
                 }
                 else if (s.equals("reset_signal"))
                 {
                     s = (String) att.get(1);
                     if(!att.getType().equals("sync"))
-                        txt += (",\n" + ind + "input " + ind3 + s);
+                        txt += (ind + s + ": in std_logic");
 
                     resetSync = false;
                     if(att.get(3).equals("posedge"))
                     {
-                        resetLine = "if (" + s + ")";
-                        alwaysLine += ", " + att.get(3) + " " + s;
+                        resetLine = "if (" + s + "='1')";
                     } else if(att.get(3).equals("negedge"))
                     {
-                        resetLine = "if (!" + s + ")";
-                        alwaysLine += ", " + att.get(3) + " " + s;
+                        resetLine = "if (" + s + "='0')";
                     } else
                     {
                         resetLine = "if (" + s + ")";
                         resetSync = true;
                     }
-                    alwaysLine += ")";
+                    alwaysLine += "," + s + ")";
                 }
                 /*else if (s.equals("reset_state"))
                 {
@@ -188,8 +189,9 @@ public class GenerateHDL {
                     pageMode = att.get(1).equals("multi");
                 }
             }
-            txt += "\n);\n\n";
+            txt += "\n);\nend;\n";
             bufferSig.clear();
+            txt += "\narchitecture rtl of "+ modName +" is\n";
             //txt += "\n// SIGNALS\n";
             dff_onStateOut.clear();
             dff_onTransitOut.clear();
@@ -225,21 +227,20 @@ public class GenerateHDL {
             {
                 if(pageMode && pageNum > 2)
                 {
-                    txt += "//==========================\n";
-                    txt += "// FSM-" + page + "\n";
-                    txt += "//==========================\n\n";
+                    txt += "--==========================\n";
+                    txt += "-- FSM-" + page + "\n";
+                    txt += "--==========================\n\n";
 
                     stateVar = baseStateVar + "_" + page;
-                    nextStateVar = baseNextStateVar + "_" + page;
                 }
                 else
                 {
                     stateVar = baseStateVar;
-                    nextStateVar = baseNextStateVar;
                 }
                 stateBw = log2(getStateNum(page));
 
-                txt += "// STATE Definitions\n";
+		txt += "\n";
+                txt += "-- STATE Definitions\n";
                 t = 0;
                 j = 0;
                 for(i = 1; i < objList.size(); i++)
@@ -256,30 +257,27 @@ public class GenerateHDL {
                         else
                         {
                             t = 1;
-                            txt += "parameter\n";
+                            txt += "type states is (\n";
                         }
 
-                        txt += (obj.getName() + " = " + stateBw + "'d" + j);
+                        txt += ind + (obj.getName());
                         j += 1;
                     }
                 }
-                txt += ";\n";
+                txt += ");\n";
 
-                s = stateVar + ", " + nextStateVar + ";\n";
-                if(stateBw > 1)
-                txt += "\nreg  [" + (stateBw -1) + ":0] " + s;
-                else
-                txt += "\nreg  " + s;
+                txt += "\nsignal  " + stateVar + ": states;";
 
-                txt += alwaysLine + "\n";
-                txt += resetLine +
-                        "\n" + ind + stateVar + " <= " + resetState +
-                        ";\nelse\n" + ind + stateVar + " <= " + nextStateVar + ";\n";
+		txt += "\nbegin\n";
+
+                txt += "run_stmc: " + alwaysLine + "\nbegin \n";
+                txt += ind + resetLine +
+                        "\n" + ind2 + stateVar + " <= " + resetState +
+                        ";\n" + ind + "elsif () then \n"; 
 
 
                 LinkedList<ObjAttribute> attribList;
-                txt += doTransitBlkInit();
-                txt += "\n" + ind + "case (" + stateVar + ")\n";
+                txt += "\n" + ind2 + "case (" + stateVar + ") is\n";
 
                 for(i = 1; i < objList.size(); i++)
                 {
@@ -292,9 +290,11 @@ public class GenerateHDL {
                     attribList = obj.getAttributeList();
                     att = attribList.get(0);
                     s = (String) att.get(1);
-                    txt += ind2 + s + " :\n" + doTransit(s);
+                    txt += ind3 + "when " +  s + " =>" + doTransit(s);
                 }
-                txt += ind + "endcase\nend\n";
+                txt += ind2 + "end case;\n";
+		txt += ind + "end if;\n";
+		txt += "end process;\n";
 
                 s = doOutputBlkInit();
                 if(!s.equals(""))
@@ -302,7 +302,7 @@ public class GenerateHDL {
                     txt += s;
                     if(dff_onStateOut.size() > 0 || hold_onStateOut.size() > 0)
                     {
-                        txt += "\n" + ind + "case (" + nextStateVar + ")\n";
+                        txt += "\n" + ind2 + "case (" + stateVar + ") is\n";
                         for(i = 1; i < objList.size(); i++)
                         {
                             obj = (GeneralObj) objList.elementAt(i);
@@ -319,27 +319,27 @@ public class GenerateHDL {
                                 if(j==0)
                                 {
                                     if(!s.equals(""))
-                                    s = (ind2 + att.get(1) + " : begin\n") + s + ind2 + "end\n";
+                                    s = (ind3 + "when " + att.get(1) + " =>\n") + s;
                                 }
                                 else if(!att.get(1).equals(""))
                                 {
                                     ni = nameinfo(att);
-                                    s += (ind3 + ni[1] + " <= " + att.get(1) + ";\n");
+                                    s += (ind4 + ni[1] + " <= " + att.get(1) + ";\n");
                                 }
                             }
                             txt += s;
                         }
-                        txt += ind + "endcase\n";
+                        txt += ind2 + "end case;\n";
                     }
-                    txt += "end\n";
+                    txt += ind + "end if;\n";
+                    txt += "end process;\n";
                 }
 
-                txt += doSimBlk(page);
                 if(!pageMode) // single mode
                     break;
             }
 
-            txt += "endmodule // Fizzim2\n";
+            txt += "end architecture; -- Fizzim2\n";
             writer.write(txt);
             writer.close();
             consoleText.setText(txt);
@@ -552,7 +552,6 @@ try {
 
         txt += "\n// Transition combinational always block\n";
         txt += "always @* begin\n";
-        txt += ind + nextStateVar + " = " + stateVar + ";\n";
 
         for (i = 0; i < dff_onTransitOut.size(); i++) {
             ni = nameinfo(dff_onTransitOut.get(i));
@@ -612,7 +611,7 @@ try {
             continue;
 
             LinkedList<ObjAttribute> attribList = obj.getAttributeList();
-            s = ("begin\n" + ind4 + nextStateVar + " = " + endState + ";\n");
+            s = ("\n" + ind5 + stateVar + " <= " + endState + ";\n");
             for (int j = 1; j < attribList.size(); j++) {
 
                 ObjAttribute att = attribList.get(j);
@@ -641,10 +640,9 @@ try {
                     else
                         s += ind4 + ni[1];
 
-                    s += (" = " + att.get(1) + ";\n");
+                    s += (" <= " + att.get(1) + ";\n");
                 }
             }
-            s += ind3 + "end\n";
 
             // Sort by priority
             // -1: lowest, else-statement
@@ -701,108 +699,77 @@ try {
            dff_onTransitOut.size() == 0
         ) return txt;
 
-        txt += "\n// Output sequential always block\n";
-        txt += alwaysLine + "\n";
+        txt += "\n" + "// Drive outputs \n";
+        txt += "compute: " + alwaysLine + "\nbegin\n";
 
         if(!resetSync)
         {
-        txt += resetLine + " begin\n";
+        txt += ind + resetLine + " then\n";
 
         for (i = 0; i < bufferOut.size(); i++) {
             ni = nameinfo(bufferOut.get(i));
-            txt += (ind + ni[1] + " <= " + ni[7] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + ni[7] + ";\n");
         }
         for (i = 0; i < bufferSig.size(); i++) {
             ni = nameinfo(bufferSig.get(i));
-            txt += (ind + ni[1] + " <= " + ni[7] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + ni[7] + ";\n");
         }
         for (i = 0; i < dff_onTransitOut.size(); i++) {
             ni = nameinfo(dff_onTransitOut.get(i));
-            txt += (ind + ni[1] + " <= " + ni[7] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + ni[7] + ";\n");
         }
         for (i = 0; i < dff_onStateOut.size(); i++) {
             ni = nameinfo(dff_onStateOut.get(i));
-            txt += (ind + ni[1] + " <= " + ni[7] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + ni[7] + ";\n");
         }
         for (i = 0; i < dff_onBothOut.size(); i++) {
             ni = nameinfo(dff_onBothOut.get(i));
-            txt += (ind + ni[1] + " <= " + ni[7] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + ni[7] + ";\n");
         }
         for (i = 0; i < hold_onTransitOut.size(); i++) {
             ni = nameinfo(hold_onTransitOut.get(i));
-            txt += (ind + ni[1] + " <= " + ni[7] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + ni[7] + ";\n");
         }
         for (i = 0; i < hold_onStateOut.size(); i++) {
             ni = nameinfo(hold_onStateOut.get(i));
-            txt += (ind + ni[1] + " <= " + ni[7] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + ni[7] + ";\n");
         }
         for (i = 0; i < hold_onBothOut.size(); i++) {
             ni = nameinfo(hold_onBothOut.get(i));
-            txt += (ind + ni[1] + " <= " + ni[7] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + ni[7] + ";\n");
         }
 
-        txt += "end\nelse ";
+        txt += ind + "elsif () then\n" ;
         }
-        txt += "begin\n";
 
         for (i = 0; i < bufferOut.size(); i++) {
             ni = nameinfo(bufferOut.get(i));
-            txt += (ind + ni[1] + " <= " + bufferOut.get(i).getUserAtts() + ";\n");
+            txt += (ind2 + ni[1] + " <= " + bufferOut.get(i).getUserAtts() + ";\n");
         }
         for (i = 0; i < bufferSig.size(); i++) {
             ni = nameinfo(bufferSig.get(i));
-            txt += (ind + ni[1] + " <= " + bufferSig.get(i).getUserAtts() + ";\n");
+            txt += (ind2 + ni[1] + " <= " + bufferSig.get(i).getUserAtts() + ";\n");
         }
         for (i = 0; i < dff_onTransitOut.size(); i++) {
             ni = nameinfo(dff_onTransitOut.get(i));
-            txt += (ind + ni[1] + " <= " + holdVar + ni[1] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + holdVar + ni[1] + ";\n");
         }
         for (i = 0; i < dff_onBothOut.size(); i++) {
             ni = nameinfo(dff_onBothOut.get(i));
-            txt += (ind + ni[1] + " <= " + holdVar + ni[1] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + holdVar + ni[1] + ";\n");
         }
         for (i = 0; i < hold_onTransitOut.size(); i++) {
             ni = nameinfo(hold_onTransitOut.get(i));
-            txt += (ind + ni[1] + " <= " + holdVar + ni[1] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + holdVar + ni[1] + ";\n");
         }
         for (i = 0; i < hold_onBothOut.size(); i++) {
             ni = nameinfo(hold_onBothOut.get(i));
-            txt += (ind + ni[1] + " <= " + holdVar + ni[1] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + holdVar + ni[1] + ";\n");
         }
         for (i = 0; i < dff_onStateOut.size(); i++) {
             ni = nameinfo(dff_onStateOut.get(i));
-            txt += (ind + ni[1] + " <= " + ni[7] + ";\n");
+            txt += (ind2 + ni[1] + " <= " + ni[7] + ";\n");
         }
-
-        return txt;
-    }
-
-
-    private String doSimBlk(int page)
-    {
-        String txt = "\n// This code allows you to see state names in simulation\n";
-        String stateSim = stateVar + "_name";
-        String s = new String();
-
-        txt += "`ifndef SYNTHESIS\nreg [31:0] ";
-        txt += stateSim + ";\nalways @* begin\n";
-        txt += ind + "case (" + stateVar + ")\n";
-        for(int i = 1; i < objList.size(); i++)
-        {
-            GeneralObj obj = (GeneralObj) objList.elementAt(i);
-            if(pageMode && obj.getPage() != page)
-                continue;
-            if(obj.getType() != 0) // State Only
-                continue;
-
-            //LinkedList<ObjAttribute> attribList = obj.getAttributeList();
-            ObjAttribute attrib = obj.getAttributeList().get(0);
-            s = attrib.getValue();
-            txt += ind2 + s + " : " + stateSim + " = \"" + s + "\";\n";
-        }
-
-        txt += ind2 + "default : " + stateSim + " = \"XXX\";\n";
-        txt += ind + "endcase\nend\n`endif\n\n";
 
         return txt;
     }
@@ -811,15 +778,14 @@ try {
     private String doOutputDefinition(int t)
     {
         String s1 = "// SIGNALS ";
-        String s2 = "reg ";
-        String s3 = ",\n";
+        String s2 = "";
+        String s3 = ";\n";
         String[] ni;
         String txt = "";
 
         if(t == 0) // for Outputs
         {
             s1 = "// OUTPUTS ";
-            s2 = ind + "output " + s2;
         }
 
         if(dff_onStateOut.size() > 0)
@@ -829,7 +795,7 @@ try {
             if(t != 0) // for Signals
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (s2 + ni[2] + " " + ni[1] + s3);
+            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
         }
         if(dff_onTransitOut.size() > 0)
             txt += s1 + "dff-onTransit\n";
@@ -838,7 +804,7 @@ try {
             if(t != 0)
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (s2 + ni[2] + " " + ni[1] + s3);
+            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
         }
         if(comb_onTransitOut.size() > 0)
             txt += s1 + "comb-onTransit\n";
@@ -847,7 +813,7 @@ try {
             if(t != 0)
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (s2 + ni[2] + " " + ni[1] + s3);
+            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
         }
         if(hold_onStateOut.size() > 0)
             txt += s1 + "hold-onState\n";
@@ -856,7 +822,7 @@ try {
             if(t != 0)
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (s2 + ni[2] + " " + ni[1] + s3);
+            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
         }
         if(hold_onTransitOut.size() > 0)
             txt += s1 + "hold-onTransit\n";
@@ -865,7 +831,7 @@ try {
             if(t != 0)
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (s2 + ni[2] + " " + ni[1] + s3);
+            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
         }
         if(dff_onBothOut.size() > 0)
             txt += s1 + "dff-onBoth\n";
@@ -874,7 +840,7 @@ try {
             if(t != 0)
                 s3 = " = " + ni[7] + ";\n";
 
-            txt += (s2 + ni[2] + " " + ni[1] + s3);
+            txt += (ni[1] + " : out std_logic_vector( " + ni[2] + ")" + s3);
         }
         if(hold_onBothOut.size() > 0)
             txt += s1 + "hold-onBoth\n";

@@ -1296,7 +1296,7 @@ public class FizzimGui extends javax.swing.JFrame {
         currFile = selectedFile;
 
         String s = currFile.getAbsolutePath();
-        genhdl = new GenerateHDL(s.substring(0, s.length() - 4) + ".v",
+        genhdl = new GenerateHDL(s.substring(0, s.length() - 4) + ".vhd",
                                 getPages(),
                                 currVer,
                                 drawArea1,
