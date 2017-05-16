@@ -9,7 +9,7 @@ This project was forked from [Fizzim2](https://github.com/balanx/fizzim2) which 
 > Java JRE/JDK
 
 ### Compile ###
-> ant build.xml
+> ant
 
 ### Running ###
 > java -jar Fizzim2-xxxxxx.jar
