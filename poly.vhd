@@ -1,4 +1,4 @@
--- File last modified by Fizzim2 (build 16.04.26) at 7:44:08 PM on 2017-05-15
+-- File last modified by Fizzim2 (build 16.04.26) at 2:16:19 PM on 26/05/17
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -17,7 +17,7 @@ port (
 
 -- GLOBAL
     clk: in std_logic;
-    resetN: in std_logic
+
 );
 end;
 
@@ -34,9 +34,9 @@ signal  state: states;
 
 begin
 
-run_stmc: process (clk ,resetN)
+run_stmc: process (clk ,reset)
 begin 
-    if (resetN='0') then
+    if (reset) then
         state <= compute_ax;
     elsif (clk'EVENT and clk='1') then
         case (state) is
@@ -53,11 +53,8 @@ begin
 end process;
 
 -- Drive outputs 
-compute: process (clk ,resetN)
+compute: process (clk ,reset)
 begin
-    if (resetN='0') then
-        temp1_out <= (others=>'0');
-    elsif (clk'EVENT and clk='1')then 
         temp1_out <= (others=>'0');
 
         case (state) is

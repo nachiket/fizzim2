@@ -632,7 +632,7 @@ try {
                     }
                     else
                     {
-                        s = ("if(" + eqn + ") " + s);
+                        s = "\n" + ind5 + ("if(" + eqn + ") then " + s);
                         pri = (String) att.get(6);
                         if(pri.equals(""))
                             pri = "0";
@@ -643,9 +643,9 @@ try {
                     ni = nameinfo(att);
                     useratts = (String) att.get(6);
                     if(useratts.contains("hold-") || useratts.contains("dff-"))
-                        s += ind4 + holdVar + ni[1];
+                        s += ind4 + ind3 + holdVar + ni[1];
                     else
-                        s += ind4 + ni[1];
+                        s += ind4 + ind3 + ni[1];
 
                     s += (" <= " + att.get(1) + ";\n");
                 }
@@ -682,11 +682,13 @@ try {
         //for (int j = 0; j < list.size(); j += 1)
         for (int j = 1; j < list.size(); j += 2)
         {
-            txt += ind3;
+            txt += ind5;
             if (j>1) txt += "else ";
 
-            txt += list.get(j);
+            txt += ind2 + list.get(j);
         }
+
+	txt += ind5 +  "end if;\n";
 
         return txt;
     }
